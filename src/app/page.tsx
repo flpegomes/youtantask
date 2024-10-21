@@ -1,101 +1,175 @@
-import Image from "next/image";
+'use client'
+
+import { Header } from '@/components/header'
+import { TableTasks } from '@/components/table-tasks'
+import { useToast } from '@/hooks/use-toast'
+import { useEffect, useState } from 'react'
+
+export interface Task {
+  id: string
+  description: string
+  completed: boolean
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [tasks, setTasks] = useState<Task[]>([])
+  const { toast } = useToast()
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Fetch de dados com a API (mockapi.io)
+  async function fetchTasks(): Promise<Task[]> {
+    const res = await fetch(
+      `https://67100dffa85f4164ef2cebe6.mockapi.io/task`,
+      {
+        method: 'GET',
+        headers: {
+          'content-type': 'application/json',
+        },
+      },
+    )
+
+    if (res.ok) {
+      return res.json()
+    }
+    return []
+  }
+
+  // Criar task
+  async function createTask(description: string) {
+    const newTask = {
+      description,
+      completed: false,
+    }
+
+    const task = fetch('https://67100dffa85f4164ef2cebe6.mockapi.io/task', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(newTask),
+    }).then((res) => {
+      if (res.ok) {
+        toast({
+          description: 'Task criada com sucesso.',
+          variant: 'success',
+        })
+        return res.json()
+      }
+
+      toast({
+        description: 'Falha ao criar a task',
+        variant: 'destructive',
+      })
+
+      return false
+    })
+
+    return task
+  }
+
+  // Editar Task
+  async function editTask(task: Task) {
+    const response = fetch(
+      `https://67100dffa85f4164ef2cebe6.mockapi.io/task/${task.id}`,
+      {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          description: task.description,
+          completed: task.completed,
+        }),
+      },
+    ).then((res) => {
+      if (res.ok) {
+        toast({
+          description: 'Task editada com sucesso.',
+          variant: 'success',
+        })
+
+        return res.json()
+      }
+
+      toast({
+        description: 'Falha ao editar a task',
+        variant: 'destructive',
+      })
+
+      return false
+    })
+
+    return response
+  }
+
+  // Deletar Task
+  async function deleteTask(id: string) {
+    const res = await fetch(
+      `https://67100dffa85f4164ef2cebe6.mockapi.io/task/${id}`,
+      {
+        method: 'DELETE',
+      },
+    )
+
+    if (res.ok) {
+      toast({
+        description: 'Task deletada com sucesso.',
+        variant: 'success',
+      })
+
+      return true
+    }
+
+    toast({
+      description: 'Falha ao deletar a task',
+      variant: 'destructive',
+    })
+
+    return false
+  }
+
+  useEffect(() => {
+    fetchTasks().then(setTasks)
+  }, [])
+
+  const handleCreate = async (description: string) => {
+    const createdTask = await createTask(description)
+
+    if (createdTask) {
+      const updateList = [...tasks, createdTask]
+      setTasks(updateList)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    const isDeleted = await deleteTask(id)
+
+    if (isDeleted) {
+      setTasks((prevTasks) => prevTasks.filter((task) => task.id !== id))
+    }
+  }
+
+  const handleEdit = async (task: Task) => {
+    const taskEdited = await editTask(task)
+
+    if (taskEdited) {
+      setTasks((prevTasks) =>
+        prevTasks.map((t) => (t.id === task.id ? taskEdited : t)),
+      )
+    }
+  }
+
+  return (
+    <div className="mb-4 py-4 max-md:px-4">
+      <Header />
+      <main className="mx-auto flex h-full w-full max-w-[1300px] flex-col items-center justify-start gap-24">
+        <div className="flex flex-col gap-4">
+          <h1 className="text-balance text-3xl font-bold tracking-tight text-foreground">
+            Tasks
+          </h1>
+          <TableTasks
+            data={tasks}
+            onDelete={handleDelete}
+            onCreate={handleCreate}
+            onEdit={handleEdit}
+          />
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
-  );
+  )
 }
