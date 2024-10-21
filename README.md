@@ -27,3 +27,6 @@ Foi utilizado as seguintes tecnologias para desenvolver o projeto:
 - Hooks
 - Recharts e Shadcn para criar o gráfico.
 
+<img width="1411" alt="image" src="https://github.com/user-attachments/assets/fce61e9f-6416-4241-ac42-99e07d606da8">
+
+
